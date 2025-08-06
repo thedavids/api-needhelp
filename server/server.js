@@ -14,7 +14,7 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const IS_PROD = process.env.NODE_ENV === 'production';
 const FE_URL = IS_PROD ? 'https://iwanttohelp.io' : 'http://localhost:5173'
-const API_URL = IS_PROD ? 'https://api-needhelp.onrender.com' : 'http://localhost:3000'
+const API_URL = IS_PROD ? 'https://api.iwanttohelp.io' : 'http://localhost:3000'
 const DOMAIN = IS_PROD ? '.iwanttohelp.io' : undefined;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
 const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes
