@@ -5,10 +5,11 @@ import cookieParser from 'cookie-parser';
 import passport from 'passport';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { Strategy as FacebookStrategy } from 'passport-facebook';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
-import { getUserByUsername, createUser, getUserByGoogleId, createUserFromGoogleProfile } from './db.js';
+import { getUserByUsername, createUser, getUserByGoogleId, createUserFromGoogleProfile, getUserByFacebookId, createUserFromFacebook } from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -164,6 +165,54 @@ app.get('/auth/google/callback',
 );
 // ======================================================================
 // End Google Auth
+// ======================================================================
+
+// ======================================================================
+// Begin Facebook Auth
+// ======================================================================
+passport.use(new FacebookStrategy({
+    clientID: process.env.FACEBOOK_APP_ID,
+    clientSecret: process.env.FACEBOOK_APP_SECRET,
+    callbackURL: `${API_URL}/auth/facebook/callback`,
+    profileFields: ['id', 'emails', 'name'] // get email + name
+}, async (accessToken, refreshToken, profile, done) => {
+    const facebookId = profile.id;
+    const email = profile.emails?.[0]?.value;
+
+    const existingUser = await getUserByFacebookId(facebookId);
+    if (existingUser) {
+        return done(null, existingUser);
+    }
+
+    const newUser = await createUserFromFacebook({ facebookId, email });
+    return done(null, newUser);
+}));
+
+// Start Facebook login
+app.get('/auth/facebook',
+    passport.authenticate('facebook', { scope: ['email'], session: false })
+);
+
+// Handle callback
+app.get('/auth/facebook/callback',
+    passport.authenticate('facebook', { failureRedirect: '/', session: false }),
+    (req, res) => {
+        const token = generateToken(req.user);
+
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: IS_PROD,
+            sameSite: IS_PROD ? 'None' : 'Lax',
+            domain: DOMAIN,
+            maxAge: COOKIE_MAX_AGE
+        });
+        
+        res.redirect(`${FE_URL}/default.html`);
+    }
+);
+
+// ======================================================================
+// End Facebook Auth
 // ======================================================================
 
 // Route: Logout

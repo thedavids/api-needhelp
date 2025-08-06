@@ -25,3 +25,20 @@ export async function createUserFromGoogleProfile(profile) {
     users.push(newUser);
     return newUser;
 }
+
+export async function getUserByFacebookId(facebookId) {
+    return users.find(u => u.facebookId === facebookId);
+}
+
+export async function createUserFromFacebook({ facebookId, email }) {
+    const newUser = {
+        id: users.length + 1,
+        username: `fb_user_${facebookId.slice(-6)}`,
+        facebookId,
+        email: email || null,
+        googleId: null,
+        password: null // no password for Facebook users
+    };
+    users.push(newUser);
+    return newUser;
+}

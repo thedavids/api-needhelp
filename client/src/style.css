@@ -39,3 +39,15 @@ button {
     text-decoration: none;
     color: inherit;
 }
+
+.login-with-facebook-btn {
+    padding: 12px 16px 12px 42px;
+    border: 1px solid black;
+    border-radius: 3px;
+    background-color: white;
+    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCI+PHBhdGggZmlsbD0iIzMwNjVhOSIgZD0iTTI0IDEyYzAtNi42MjUtNS4zNzUtMTItMTItMTItNi42MjUgMC0xMiA1LjM3NS0xMiAxMiAwIDUuOTg0IDQuMzcgMTAuOTEyIDEwLjA5NCAxMS43NXYtOC4zMTVoLTIuNDcyVjEySDEyVjkuMzcyYzAtMi40NTYgMS40NjctMy44MzcgMy43MDYtMy44MzdjMS4wNzYgMCAyLjE5Mi4xOTUzIDIuMTkyLjE5NTN2Mi4zNThIMTYuNDk2Yy0xLjIzNiAwLTEuNjIxLjcwNS0xLjYyMSAxLjQzOXYxLjcwMkgxOC41bC0uNDE5IDMuNDg2aC0yLjAwNlYyNEMxOS42MyAyMy4xNTIgMjQgMTguMTc4IDI0IDEyeiIvPjwvc3ZnPg==');
+    background-repeat: no-repeat;
+    background-position: 12px 11px;
+    text-decoration: none;
+    color: inherit;
+}

@@ -12,10 +12,8 @@ const authButtons = document.getElementById('auth-buttons');
 const userPanel = document.getElementById('user-panel');
 const userInfo = document.getElementById('user-info');
 
-const googleAuthUrl = `${API_URL}/auth/google?prompt=select_account`;
-['google-login', 'google-signup'].forEach(id => {
-    document.getElementById(id).href = googleAuthUrl;
-});
+document.getElementById('google-login').href = `${API_URL}/auth/google`
+document.getElementById('facebook-login').href = `${API_URL}/auth/facebook`
 
 // Show forms
 showLoginBtn.onclick = () => {
