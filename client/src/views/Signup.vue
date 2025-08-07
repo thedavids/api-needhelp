@@ -5,7 +5,9 @@
         <input v-model="displayName" placeholder="Display Name" required />
         <input v-model="password" type="password" placeholder="Password" required />
         <input v-model="confirmPassword" type="password" placeholder="Confirm Password" required />
-        <button type="submit">Register</button>
+        <button type="submit" :disabled="loading">
+            {{ loading ? 'Registering...' : 'Register' }}
+        </button>
     </form>
 </template>
 
@@ -19,6 +21,7 @@ const email = ref('');
 const displayName = ref('');
 const password = ref('');
 const confirmPassword = ref('');
+const loading = ref(false);
 const router = useRouter();
 
 async function register() {
@@ -27,6 +30,7 @@ async function register() {
         return;
     }
 
+    loading.value = true;
     try {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/register`, {
             method: 'POST',
@@ -52,6 +56,9 @@ async function register() {
     catch(err) {
         console.log(err);
         alert('Registration failed');
+    }
+    finally {
+        loading.value = false;
     }
 }
 </script>

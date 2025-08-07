@@ -4,6 +4,10 @@
         <input v-model="email" type="email" placeholder="Email" required />
         <input v-model="password" type="password" placeholder="Password" required />
         <button type="submit">Login</button>
+
+        <p class="forgot-password">
+            <router-link to="/forgot-password">Forgot your password?</router-link>
+        </p>
     </form>
 </template>
 

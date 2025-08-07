@@ -12,7 +12,10 @@ import 'dotenv/config';
 import validator from 'validator';
 import { Resend } from 'resend';
 import { v4 as uuidv4 } from 'uuid';
-import { getUserByEmail, createUser, getUserByGoogleId, setUserIsVerified, createUserFromGoogleProfile, getUserByFacebookId, createUserFromFacebook } from './db.js';
+import {
+    getUserByEmail, getUserById, createUser, updateUserPassword, getUserByGoogleId,
+    setUserIsVerified, createUserFromGoogleProfile, getUserByFacebookId, createUserFromFacebook
+} from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -203,6 +206,74 @@ app.post('/verify', async (req, res) => {
     catch (err) {
         console.error('Verification failed:', err);
         throw err;
+    }
+});
+
+app.post('/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email || !validator.isEmail(email)) {
+        return res.status(400).json({ error: 'Invalid or missing email' });
+    }
+
+    const user = await getUserByEmail(email);
+    if (!user) {
+        return res.status(200).json({ message: 'If the email exists, a reset link will be sent' });
+    }
+
+    const token = jwt.sign({ id: user.id }, EMAIL_SECRET, { expiresIn: '1h' });
+
+    const link = `${FE_URL}/reset-password?token=${token}`;
+
+    try {
+        const result = await resend.emails.send({
+            from: process.env.EMAIL_FROM,
+            to: email,
+            subject: 'Reset your password',
+            html: `
+                <h2>Password Reset</h2>
+                <p>Click the link below to set a new password:</p>
+                <a href="${link}">${link}</a>
+                <p>This link expires in 1 hour.</p>
+            `
+        });
+
+        if (result.error) {
+            console.error('Resend error:', result.error);
+            throw new Error(result.error.error || 'Failed to send reset email');
+        }
+
+        return res.status(201).json({ message: 'Password reset link sent' });
+    }
+    catch (err) {
+        console.error('Reset email failed:', err);
+        return res.status(500).json({ error: 'Failed to send reset email' });
+    }
+});
+
+app.post('/reset-password', async (req, res) => {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+        return res.status(400).json({ error: 'Missing token or password' });
+    }
+
+    try {
+        const payload = jwt.verify(token, EMAIL_SECRET);
+        const user = await getUserById(payload.id);
+
+        if (!user) {
+            return res.status(400).json({ error: 'User not found' });
+        }
+
+        const hashed = await bcrypt.hash(password, 10);
+        await updateUserPassword(user.id, hashed);
+
+        res.status(200).json({ message: 'Password updated successfully' });
+    }
+    catch (err) {
+        console.error('Reset failed:', err);
+        return res.status(400).json({ error: 'Invalid or expired token' });
     }
 });
 // ======================================================================

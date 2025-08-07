@@ -6,6 +6,11 @@ export async function getUserByEmail(email) {
     return result.rows[0];
 }
 
+export async function getUserById(id) {
+    const result = await pool.query('SELECT * FROM "User" WHERE id = $1', [id]);
+    return result.rows[0];
+}
+
 export async function createUser({ id, email, displayName, hashedPassword }) {
     const cleanName = validator.escape(displayName.trim());
 
@@ -17,6 +22,13 @@ export async function createUser({ id, email, displayName, hashedPassword }) {
     );
 
     return result.rows[0];
+}
+
+export async function updateUserPassword(userId, hashedPassword) {
+    await pool.query(
+        `UPDATE "User" SET password = $1 WHERE id = $2`,
+        [hashedPassword, userId]
+    );
 }
 
 export async function setUserIsVerified(id) {
