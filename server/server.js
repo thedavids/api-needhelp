@@ -8,6 +8,7 @@ import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 import { Strategy as FacebookStrategy } from 'passport-facebook';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import 'dotenv/config';
 import validator from 'validator';
 import { Resend } from 'resend';
@@ -111,8 +112,14 @@ function generateVerificationToken(userId) {
     return jwt.sign({ id: userId }, EMAIL_SECRET, { expiresIn: '1d' });
 }
 
+const signUpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // Limit each IP to 5 requests per windowMs
+    message: { error: 'Too many register attempts from this IP. Please try again later.' }
+});
+
 // Route: Register
-app.post('/register', async (req, res) => {
+app.post('/register', signUpLimiter, async (req, res) => {
     const { email, displayName, password } = req.body;
 
     if (!email || !displayName || !password) {
@@ -139,7 +146,13 @@ app.post('/register', async (req, res) => {
     res.status(201).json({ message: 'Verification email sent' });
 });
 
-app.post('/login', (req, res, next) => {
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 30, // Limit each IP to 5 requests per windowMs
+    message: { error: 'Too many login attempts from this IP. Please try again later.' }
+});
+
+app.post('/login', loginLimiter, (req, res, next) => {
     passport.authenticate('local', { session: false }, (err, user, info) => {
         if (err) {
             return next(err);
@@ -209,7 +222,13 @@ app.post('/verify', async (req, res) => {
     }
 });
 
-app.post('/forgot-password', async (req, res) => {
+const forgotPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 3, // Limit each IP to 5 requests per windowMs
+    message: { error: 'Too many forgot passwords attempts from this IP. Please try again later.' }
+});
+
+app.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
     const { email } = req.body;
 
     if (!email || !validator.isEmail(email)) {
