@@ -9,7 +9,10 @@ import { Strategy as FacebookStrategy } from 'passport-facebook';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import 'dotenv/config';
-import { getUserByUsername, createUser, getUserByGoogleId, createUserFromGoogleProfile, getUserByFacebookId, createUserFromFacebook } from './db.js';
+import validator from 'validator';
+import { Resend } from 'resend';
+import { v4 as uuidv4 } from 'uuid';
+import { getUserByEmail, createUser, getUserByGoogleId, setUserIsVerified, createUserFromGoogleProfile, getUserByFacebookId, createUserFromFacebook } from './db.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,6 +23,9 @@ const DOMAIN = IS_PROD ? '.iwanttohelp.io' : undefined;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
 const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes
 const JWT_MAX_AGE = '15m';
+const EMAIL_SECRET = process.env.EMAIL_SECRET_ACTIVATION_SECRET;
+
+const resend = new Resend(process.env.EMAIL_RESEND_API_KEY);
 
 // CORS config
 app.use(cors({
@@ -52,7 +58,15 @@ app.use(cookieParser());
 
 // JWT generator
 function generateToken(user) {
-    return jwt.sign({ id: user.id, username: user.username }, JWT_SECRET, { expiresIn: JWT_MAX_AGE });
+    return jwt.sign(
+        {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName
+        },
+        JWT_SECRET,
+        { expiresIn: JWT_MAX_AGE }
+    );
 }
 
 // Auth middleware
@@ -70,45 +84,69 @@ function authenticateJWT(req, res, next) {
 // ======================================================================
 // Begin Local Auth
 // ======================================================================
-passport.use(new LocalStrategy(async (username, password, done) => {
-    const user = await getUserByUsername(username);
-    if (!user) {
-        return done(null, false, { message: 'Invalid username or password' });
-    }
+passport.use(new LocalStrategy(
+    {
+        usernameField: 'email',
+        passwordField: 'password'
+    },
+    async (email, password, done) => {
+        const user = await getUserByEmail(email);
+        if (!user) {
+            return done(null, false, { message: 'Invalid email or password' });
+        }
 
-    const match = await bcrypt.compare(password, user.hashedPassword);
-    return match ?
-        done(null, user) :
-        done(null, false, { message: 'Invalid username or password' });
-}));
+        if (!user.isVerified) {
+            return done(null, false, { message: 'Email not verified' });
+        }
+
+        const match = await bcrypt.compare(password, user.password);
+        return match ? done(null, user) : done(null, false, { message: 'Invalid email or password' });
+    }
+));
+
+function generateVerificationToken(userId) {
+    return jwt.sign({ id: userId }, EMAIL_SECRET, { expiresIn: '1d' });
+}
 
 // Route: Register
 app.post('/register', async (req, res) => {
-    const { username, password } = req.body;
-    const existing = await getUserByUsername(username);
+    const { email, displayName, password } = req.body;
+
+    if (!email || !displayName || !password) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    if (!validator.isEmail(email)) {
+        return res.status(400).json({ error: 'Invalid email format' });
+    }
+
+    const existing = await getUserByEmail(email);
     if (existing) {
         return res.status(400).json({ error: 'User already exists' });
     }
 
+    const id = uuidv4();
+
+    const token = generateVerificationToken(id);
+    await sendVerificationEmail({ email, token });
+
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = await createUser(username, hashedPassword);
+    await createUser({ id, email, displayName, hashedPassword });
 
-    const token = generateToken(newUser);
-    res.cookie('token', token, {
-        httpOnly: true,
-        secure: IS_PROD,
-        sameSite: IS_PROD ? 'None' : 'Lax',
-        domain: DOMAIN,
-        maxAge: COOKIE_MAX_AGE
-    });
-
-    res.json({ user: { id: newUser.id, username: newUser.username } });
+    res.status(201).json({ message: 'Verification email sent' });
 });
 
-app.post('/login',
-    passport.authenticate('local', { session: false }),
-    (req, res) => {
-        const token = generateToken(req.user);
+app.post('/login', (req, res, next) => {
+    passport.authenticate('local', { session: false }, (err, user, info) => {
+        if (err) {
+            return next(err);
+        }
+
+        if (!user) {
+            return res.status(401).json({ error: info?.message || 'Authentication failed' });
+        }
+
+        const token = generateToken(user);
         res.cookie('token', token, {
             httpOnly: true,
             secure: IS_PROD,
@@ -117,9 +155,56 @@ app.post('/login',
             maxAge: COOKIE_MAX_AGE
         });
 
-        res.json({ user: { id: req.user.id, username: req.user.username } });
+        res.json({
+            user: {
+                id: user.id,
+                email: user.email,
+                displayName: user.displayName
+            }
+        });
+    })(req, res, next);
+});
+
+export async function sendVerificationEmail({ email, token }) {
+    const link = `${FE_URL}/verify?token=${token}`;
+
+    try {
+        const result = await resend.emails.send({
+            from: process.env.EMAIL_FROM,
+            to: email,
+            subject: 'Verify your email address',
+            html: `
+                <h2>Welcome to IWantToHelp</h2>
+                <p>Click the link below to verify your email:</p>
+                <a href="${link}">${link}</a>
+            `
+        });
+
+        if (result.error) {
+            console.error('Resend error:', result.error);
+            throw new Error(result.error.error || 'Failed to send verification email');
+        }
+
+        return result;
     }
-);
+    catch (err) {
+        console.error('Email failed:', err);
+        throw err;
+    }
+}
+
+app.post('/verify', async (req, res) => {
+    const { token } = req.body;
+    try {
+        const payload = jwt.verify(token, EMAIL_SECRET);
+        await setUserIsVerified(payload.id);
+        res.status(201).json({ message: 'Email verified!' });
+    }
+    catch (err) {
+        console.error('Verification failed:', err);
+        throw err;
+    }
+});
 // ======================================================================
 // End Local Auth
 // ======================================================================
@@ -137,7 +222,8 @@ passport.use(new GoogleStrategy({
         return done(null, existingUser);
     }
 
-    const newUser = await createUserFromGoogleProfile(profile);
+    const id = uuidv4();
+    const newUser = await createUserFromGoogleProfile(id, profile);
     return done(null, newUser);
 }));
 
@@ -160,7 +246,7 @@ app.get('/auth/google/callback',
             maxAge: COOKIE_MAX_AGE
         });
 
-        res.redirect(`${FE_URL}/default.html`);
+        res.redirect(`${FE_URL}`);
     }
 );
 // ======================================================================
@@ -184,7 +270,8 @@ passport.use(new FacebookStrategy({
         return done(null, existingUser);
     }
 
-    const newUser = await createUserFromFacebook({ facebookId, email });
+    const id = uuidv4();
+    const newUser = await createUserFromFacebook({ id, facebookId, email });
     return done(null, newUser);
 }));
 
@@ -206,8 +293,8 @@ app.get('/auth/facebook/callback',
             domain: DOMAIN,
             maxAge: COOKIE_MAX_AGE
         });
-        
-        res.redirect(`${FE_URL}/default.html`);
+
+        res.redirect(`${FE_URL}`);
     }
 );
 

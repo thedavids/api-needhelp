@@ -51,3 +51,16 @@ button {
     text-decoration: none;
     color: inherit;
 }
+
+.user-login-form {
+    display: flex;
+    flex-direction: column;
+    max-width: 400px;
+    margin: auto;
+}
+
+.user-login-form input,
+.user-login-form button {
+    padding: 10px;
+    font-size: 16px;
+}

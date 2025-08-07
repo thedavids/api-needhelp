@@ -1,20 +1,19 @@
 import { defineConfig } from 'vite';
 import path from 'path';
+import vue from '@vitejs/plugin-vue'
 
 export default defineConfig({
-  root: './',
-  build: {
-    rollupOptions: {
-      input: 'default.html'
+    plugins: [vue()],
+    root: './',
+    build: {
+        outDir: 'dist',
     },
-    outDir: 'dist',
-  },
-  server: {
-    open: '/default.html'
-  },
-  resolve: {
-    alias: {
-      shared: path.resolve(__dirname, './shared')
+    server: {
+        open: '/',
+    },
+    resolve: {
+        alias: {
+            shared: path.resolve(__dirname, './shared')
+        }
     }
-  }
 });
