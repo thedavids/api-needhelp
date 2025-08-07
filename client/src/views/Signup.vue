@@ -1,10 +1,10 @@
 <template>
     <form class="user-login-form" @submit.prevent="register">
         <h3>Sign Up</h3>
-        <input v-model="email" type="email" placeholder="Email" required />
-        <input v-model="displayName" placeholder="Display Name" required />
-        <input v-model="password" type="password" placeholder="Password" required />
-        <input v-model="confirmPassword" type="password" placeholder="Confirm Password" required />
+        <input v-model="email" type="email" placeholder="Email" maxlength="254" required />
+        <input v-model="displayName" placeholder="Display Name" maxlength="254" required />
+        <input v-model="password" type="password" placeholder="Password" maxlength="100" required />
+        <input v-model="confirmPassword" type="password" placeholder="Confirm Password" maxlength="100" required />
         <button type="submit" :disabled="loading">
             {{ loading ? 'Registering...' : 'Register' }}
         </button>

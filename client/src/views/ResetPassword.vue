@@ -1,8 +1,8 @@
 <template>
     <form class="user-login-form" @submit.prevent="resetPassword">
         <h3>Reset Password</h3>
-        <input v-model="password" type="password" placeholder="New password" required />
-        <input v-model="confirmPassword" type="password" placeholder="Confirm password" required />
+        <input v-model="password" type="password" placeholder="New password" maxlength="100" required />
+        <input v-model="confirmPassword" type="password" placeholder="Confirm password" maxlength="100" required />
         <button type="submit">Reset</button>
         <p v-if="message">{{ message }}</p>
     </form>

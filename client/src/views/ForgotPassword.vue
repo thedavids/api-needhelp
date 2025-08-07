@@ -1,7 +1,7 @@
 <template>
     <form class="user-login-form" @submit.prevent="sendReset">
         <h3>Forgot Password</h3>
-        <input v-model="email" type="email" placeholder="Enter your email" required />
+        <input v-model="email" type="email" placeholder="Enter your email" maxlength="254" required />
         <button type="submit" :disabled="loading">
             {{ loading ? 'Sending Reset Link...' : 'Send Reset Link' }}
         </button>

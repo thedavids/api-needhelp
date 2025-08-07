@@ -1,8 +1,8 @@
 <template>
     <form class="user-login-form" @submit.prevent="login">
         <h3>Login</h3>
-        <input v-model="email" type="email" placeholder="Email" required />
-        <input v-model="password" type="password" placeholder="Password" required />
+        <input v-model="email" type="email" placeholder="Email" maxlength="254" required />
+        <input v-model="password" type="password" placeholder="Password" maxlength="100" required />
         <button type="submit">Login</button>
 
         <p class="forgot-password">
