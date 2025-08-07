@@ -4,7 +4,7 @@
         <input v-model="email" type="email" placeholder="Email" required />
         <input v-model="displayName" placeholder="Display Name" required />
         <input v-model="password" type="password" placeholder="Password" required />
-        <input v-model="confirmPassword" type="confirmPassword" placeholder="Confirm Password" required />
+        <input v-model="confirmPassword" type="password" placeholder="Confirm Password" required />
         <button type="submit">Register</button>
     </form>
 </template>

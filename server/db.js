@@ -1,4 +1,5 @@
 import pool from './dbConnection.js';
+import validator from 'validator';
 
 export async function getUserByEmail(email) {
     const result = await pool.query('SELECT * FROM "User" WHERE email = $1', [email]);
@@ -6,11 +7,13 @@ export async function getUserByEmail(email) {
 }
 
 export async function createUser({ id, email, displayName, hashedPassword }) {
+    const cleanName = validator.escape(displayName.trim());
+
     const result = await pool.query(
         `INSERT INTO "User" (id, email, "displayName", password, "isVerified")
          VALUES ($1, $2, $3, $4, $5)
          RETURNING id, email, "displayName"`,
-        [id, email, displayName, hashedPassword, false]
+        [id, email, cleanName, hashedPassword, false]
     );
 
     return result.rows[0];
@@ -23,7 +26,7 @@ export async function setUserIsVerified(id) {
 
 export async function getUserByGoogleId(googleId) {
     const res = await pool.query('SELECT * FROM "User" WHERE "googleId" = $1', [googleId]);
-    return res;
+    return res.rows[0] || null;
 }
 
 export async function createUserFromGoogleProfile(id, profile) {

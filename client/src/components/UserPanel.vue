@@ -5,6 +5,12 @@
   </div>
 </template>
 
+<style scoped>
+div {
+    text-align: center;
+}
+</style>
+
 <script setup>
 import { onMounted } from 'vue'
 import { useAuth } from '../composables/useAuth'
