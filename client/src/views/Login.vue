@@ -1,12 +1,12 @@
 <template>
     <form class="user-login-form" @submit.prevent="login">
-        <h3>Login</h3>
-        <input v-model="email" type="email" placeholder="Email" maxlength="254" required />
-        <input v-model="password" type="password" placeholder="Password" maxlength="100" required />
-        <button type="submit">Login</button>
+        <h3>{{ $t('login') }}</h3>
+        <input v-model="email" type="email" :placeholder="$t('email')" maxlength="254" required />
+        <input v-model="password" type="password" :placeholder="$t('password')" maxlength="100" required />
+        <button type="submit">{{ $t('login') }}</button>
 
         <p class="forgot-password">
-            <router-link to="/forgot-password">Forgot your password?</router-link>
+            <router-link to="/forgot-password">{{ $t('forgot_password') }}</router-link>
         </p>
     </form>
     <AuthButtons />

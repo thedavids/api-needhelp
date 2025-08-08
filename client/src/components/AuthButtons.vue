@@ -1,8 +1,8 @@
 <template>
     <div class="auth-buttons-group">
         <div class="auth-buttons">
-            <a :href="`${API_URL}/auth/google`" class="auth-btn social-btn google">Login with Google</a>
-            <a :href="`${API_URL}/auth/facebook`" class="auth-btn social-btn facebook">Login with Facebook</a>
+            <a :href="`${API_URL}/auth/google`" class="auth-btn social-btn google">{{ $t('login_google') }}</a>
+            <a :href="`${API_URL}/auth/facebook`" class="auth-btn social-btn facebook">{{ $t('login_facebook') }}</a>
         </div>
     </div>
 </template>

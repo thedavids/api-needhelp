@@ -1,12 +1,12 @@
 <template>
     <form class="user-login-form" @submit.prevent="register">
-        <h3>Sign Up</h3>
-        <input v-model="email" type="email" placeholder="Email" maxlength="254" required />
-        <input v-model="displayName" placeholder="Display Name" maxlength="254" required />
-        <input v-model="password" type="password" placeholder="Password" maxlength="100" required />
-        <input v-model="confirmPassword" type="password" placeholder="Confirm Password" maxlength="100" required />
+        <h3>{{ $t('signup') }}</h3>
+        <input v-model="email" type="email" :placeholder="$t('email')" maxlength="254" required />
+        <input v-model="displayName" :placeholder="$t('display_name')" maxlength="254" required />
+        <input v-model="password" type="password" :placeholder="$t('password')" maxlength="100" required />
+        <input v-model="confirmPassword" type="password" :placeholder="$t('password_confirm')" maxlength="100" required />
         <button type="submit" :disabled="loading">
-            {{ loading ? 'Registering...' : 'Register' }}
+            {{ loading ? $t('registering') : $t('register') }}
         </button>
     </form>
     <AuthButtons />

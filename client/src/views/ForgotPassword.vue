@@ -1,9 +1,9 @@
 <template>
     <form class="user-login-form" @submit.prevent="sendReset">
-        <h3>Forgot Password</h3>
-        <input v-model="email" type="email" placeholder="Enter your email" maxlength="254" required />
+        <h3>{{ $t('forgot_password') }}</h3>
+        <input v-model="email" type="email" :placeholder="$t('enter_email')" maxlength="254" required />
         <button type="submit" :disabled="loading">
-            {{ loading ? 'Sending Reset Link...' : 'Send Reset Link' }}
+            {{ loading ? $t('sending_reset_link') : $t('send_reset_link') }}
         </button>
         <p v-if="message">{{ message }}</p>
     </form>

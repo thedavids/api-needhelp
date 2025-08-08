@@ -1,9 +1,9 @@
 <template>
     <form class="user-login-form" @submit.prevent="resetPassword">
-        <h3>Reset Password</h3>
-        <input v-model="password" type="password" placeholder="New password" maxlength="100" required />
-        <input v-model="confirmPassword" type="password" placeholder="Confirm password" maxlength="100" required />
-        <button type="submit">Reset</button>
+        <h3>{{ $t('password_reset') }}</h3>
+        <input v-model="password" type="password" :placeholder="$t('password_new')" maxlength="100" required />
+        <input v-model="confirmPassword" type="password" :placeholder="$t('password_confirm')" maxlength="100" required />
+        <button type="submit">{{ $t('reset') }}</button>
         <p v-if="message">{{ message }}</p>
     </form>
 </template>

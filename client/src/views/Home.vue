@@ -15,9 +15,8 @@ p {
 </style>
 
 <template>
-    <h1>I Want to Help</h1>
-    <p>Be someone’s neighbor in the truest sense. Offer your time, tools, or skills to people nearby — for anything from
-        errands to conversation.</p>
-    <p>We're building a platform to make helping easy and local.</p>
+    <h1>{{ $t('product_title') }}</h1>
+    <p>{{ $t('product_description1') }}</p>
+    <p>{{ $t('product_description2') }}</p>
     <UserPanel />
 </template>

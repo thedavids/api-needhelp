@@ -5,20 +5,31 @@
         </div>
 
         <div class="nav-links">
+
+            <div class="lang-dropdown" ref="langRef">
+                <button class="btn" @click="showLangDropdown = !showLangDropdown">🌐</button>
+                <div v-if="showLangDropdown" class="dropdown-menu">
+                    <button @click="setLanguage('en')" class="dropdown-item dropdown-item-100">{{ $t('english')
+                        }}</button>
+                    <button @click="setLanguage('fr')" class="dropdown-item dropdown-item-100">{{ $t('french')
+                        }}</button>
+                </div>
+            </div>
+
             <template v-if="!user">
-                <RouterLink to="/signup" class="btn">Sign Up</RouterLink>
-                <RouterLink to="/login" class="btn">Login</RouterLink>
+                <RouterLink to="/signup" class="btn">{{ $t('signup') }}</RouterLink>
+                <RouterLink to="/login" class="btn">{{ $t('login') }}</RouterLink>
             </template>
 
-            <template v-else>
+            <template v-if="user">
                 <div class="dropdown" ref="dropdownRef">
                     <button class="btn" @click="toggleDropdown">
                         👤 {{ user.displayName }}
                     </button>
 
                     <div v-if="showDropdown" class="dropdown-menu">
-                        <RouterLink to="/profile" class="dropdown-item">Profile</RouterLink>
-                        <button @click="logout" class="dropdown-item">Logout</button>
+                        <RouterLink to="/profile" class="dropdown-item">{{ $t('profile') }}</RouterLink>
+                        <button @click="logout" class="dropdown-item dropdown-item-100">{{ $t('logout') }}</button>
                     </div>
                 </div>
             </template>
@@ -30,20 +41,28 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuth } from '../composables/useAuth';
+import { useI18n } from 'vue-i18n';
 
 const router = useRouter();
 const { user, clearUser } = useAuth();
+const { locale } = useI18n();
 
 const showDropdown = ref(false);
 const dropdownRef = ref(null);
+const showLangDropdown = ref(false);
+const langRef = ref(null);
 
 function toggleDropdown() {
     showDropdown.value = !showDropdown.value;
 }
 
 function handleClickOutside(e) {
-    if (dropdownRef.value && !dropdownRef.value.contains(e.target)) {
+    if (
+        (dropdownRef.value && !dropdownRef.value.contains(e.target)) &&
+        (langRef.value && !langRef.value.contains(e.target))
+    ) {
         showDropdown.value = false;
+        showLangDropdown.value = false;
     }
 }
 
@@ -54,6 +73,11 @@ onMounted(() => {
 onBeforeUnmount(() => {
     window.removeEventListener('click', handleClickOutside);
 });
+
+function setLanguage(lang) {
+    locale.value = lang;
+    showLangDropdown.value = false;
+}
 
 async function logout() {
     await fetch(`${import.meta.env.VITE_API_URL}/logout`, {
@@ -106,6 +130,10 @@ async function logout() {
     position: relative;
 }
 
+.lang-dropdown {
+    position: relative;
+}
+
 .dropdown-menu {
     position: absolute;
     right: 0;
@@ -116,6 +144,10 @@ async function logout() {
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     width: 160px;
     z-index: 10;
+}
+
+.dropdown-item-100 {
+    width: 100%;
 }
 
 .dropdown-item {

@@ -1,6 +1,6 @@
 <template>
     <div>
-        <h2>Email Verification</h2>
+        <h2>{{ $t('email_verification') }}</h2>
         <p v-if="message">{{ message }}</p>
     </div>
 </template>

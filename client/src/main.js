@@ -1,9 +1,19 @@
 import { createApp } from 'vue';
 import App from './App.vue';
 import { router } from './router';
+import { i18n } from './i18n';
 import './style.css';
 
-createApp(App).use(router).mount('#app');
+// Detect browser language
+const browserLang = navigator.language || navigator.userLanguage || 'en';
+if (browserLang.startsWith('fr')) {
+    i18n.global.locale.value = 'fr';
+}
+
+createApp(App)
+    .use(router)
+    .use(i18n)
+    .mount('#app');
 
 const refreshTokenUrl = `${import.meta.env.VITE_API_URL}/refresh-token`;
 let isRefreshing = false;
