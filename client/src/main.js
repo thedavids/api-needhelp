@@ -31,7 +31,6 @@ async function refreshAccessToken() {
 
         if (!res.ok) {
             console.warn('Refresh token failed');
-            router.push('/login');
         }
         else {
             lastRefreshTime = Date.now();

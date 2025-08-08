@@ -17,6 +17,8 @@ import {
     getUserByEmail, getUserById, createUser, updateUserPassword, getUserByGoogleId,
     setUserIsVerified, createUserFromGoogleProfile, getUserByFacebookId, createUserFromFacebook
 } from './db.js';
+import { injectAccessTokens, clearAccessTokens } from './utils/tokens.js';
+import { sendEmailVerification, sendPasswordResetEmail } from './services/emails.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -25,12 +27,9 @@ const FE_URL = IS_PROD ? 'https://iwanttohelp.io' : 'http://localhost:5173'
 const API_URL = IS_PROD ? 'https://api.iwanttohelp.io' : 'http://localhost:3000'
 const DOMAIN = IS_PROD ? '.iwanttohelp.io' : undefined;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
-const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes
-const JWT_MAX_AGE = '15m';
+
 const EMAIL_SECRET = process.env.EMAIL_SECRET_ACTIVATION_SECRET;
 const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev_jwt_refresh_secret';
-const REFRESH_TOKEN_MAX_AGE = '30d';
-const COOKIE_REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const resend = new Resend(process.env.EMAIL_RESEND_API_KEY);
 
@@ -63,27 +62,6 @@ app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-// JWT generator
-function generateToken(user) {
-    return jwt.sign(
-        {
-            id: user.id,
-            email: user.email,
-            displayName: user.displayName
-        },
-        JWT_SECRET,
-        { expiresIn: JWT_MAX_AGE }
-    );
-}
-
-function generateRefreshToken(user) {
-    return jwt.sign(
-        { id: user.id },
-        REFRESH_TOKEN_SECRET,
-        { expiresIn: REFRESH_TOKEN_MAX_AGE }
-    );
-}
-
 // Auth middleware
 function authenticateJWT(req, res, next) {
     const token = req.cookies.token;
@@ -93,28 +71,6 @@ function authenticateJWT(req, res, next) {
         if (err) return res.status(403).json({ error: 'Invalid token' });
         req.user = user;
         next();
-    });
-}
-
-function injectAccessTokens(user, res) {
-    const accessToken = generateToken(user);
-    const newRefreshToken = generateRefreshToken(user);
-
-    res.cookie('token', accessToken, {
-        httpOnly: true,
-        secure: IS_PROD,
-        sameSite: IS_PROD ? 'None' : 'Lax',
-        domain: DOMAIN,
-        maxAge: COOKIE_MAX_AGE
-    });
-
-    res.cookie('refreshToken', newRefreshToken, {
-        httpOnly: true,
-        secure: IS_PROD,
-        sameSite: IS_PROD ? 'None' : 'Lax',
-        domain: DOMAIN,
-        maxAge: COOKIE_REFRESH_TOKEN_MAX_AGE,
-        path: '/refresh-token' // refresh-token only sent to this path
     });
 }
 
@@ -134,7 +90,8 @@ app.post('/refresh-token', async (req, res) => {
         injectAccessTokens(user, res);
 
         res.json({ message: 'Tokens refreshed' });
-    } catch (err) {
+    } 
+    catch (err) {
         console.error('Refresh token error:', err);
         res.status(401).json({ error: 'Invalid or expired refresh token' });
     }
@@ -193,7 +150,7 @@ app.post('/register', signUpLimiter, async (req, res) => {
     const id = uuidv4();
 
     const token = generateVerificationToken(id);
-    await sendVerificationEmail({ email, token });
+    await sendEmailVerification({ email, token });
 
     const hashedPassword = await bcrypt.hash(password, 10);
     await createUser({ id, email, displayName, hashedPassword });
@@ -203,7 +160,7 @@ app.post('/register', signUpLimiter, async (req, res) => {
 
 const loginLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 30, // Limit each IP to 5 requests per windowMs
+    max: 30, // Limit each IP to 30 requests per windowMs
     message: { error: 'Too many login attempts from this IP. Please try again later.' }
 });
 
@@ -228,34 +185,6 @@ app.post('/login', loginLimiter, (req, res, next) => {
         });
     })(req, res, next);
 });
-
-export async function sendVerificationEmail({ email, token }) {
-    const link = `${FE_URL}/verify?token=${token}`;
-
-    try {
-        const result = await resend.emails.send({
-            from: process.env.EMAIL_FROM,
-            to: email,
-            subject: 'Verify your email address',
-            html: `
-                <h2>Welcome to IWantToHelp</h2>
-                <p>Click the link below to verify your email:</p>
-                <a href="${link}">${link}</a>
-            `
-        });
-
-        if (result.error) {
-            console.error('Resend error:', result.error);
-            throw new Error(result.error.error || 'Failed to send verification email');
-        }
-
-        return result;
-    }
-    catch (err) {
-        console.error('Email failed:', err);
-        throw err;
-    }
-}
 
 app.post('/verify', async (req, res) => {
     const { token } = req.body;
@@ -290,32 +219,9 @@ app.post('/forgot-password', forgotPasswordLimiter, async (req, res) => {
 
     const token = jwt.sign({ id: user.id }, EMAIL_SECRET, { expiresIn: '1h' });
 
-    const link = `${FE_URL}/reset-password?token=${token}`;
+    await sendPasswordResetEmail({ email, token });
 
-    try {
-        const result = await resend.emails.send({
-            from: process.env.EMAIL_FROM,
-            to: email,
-            subject: 'Reset your password',
-            html: `
-                <h2>Password Reset</h2>
-                <p>Click the link below to set a new password:</p>
-                <a href="${link}">${link}</a>
-                <p>This link expires in 1 hour.</p>
-            `
-        });
-
-        if (result.error) {
-            console.error('Resend error:', result.error);
-            throw new Error(result.error.error || 'Failed to send reset email');
-        }
-
-        return res.status(201).json({ message: 'Password reset link sent' });
-    }
-    catch (err) {
-        console.error('Reset email failed:', err);
-        return res.status(500).json({ error: 'Failed to send reset email' });
-    }
+    return res.status(201).json({ message: 'Password reset link sent' });
 });
 
 app.post('/reset-password', async (req, res) => {
@@ -424,13 +330,7 @@ app.get('/auth/facebook/callback',
 
 // Route: Logout
 app.post('/logout', (req, res) => {
-    res.clearCookie('token', {
-        httpOnly: true,
-        secure: IS_PROD,
-        sameSite: IS_PROD ? 'None' : 'Lax',
-        domain: DOMAIN
-    });
-
+    clearAccessTokens(res);
     res.json({ message: 'Logged out' });
 });
 

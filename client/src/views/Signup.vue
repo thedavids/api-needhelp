@@ -9,6 +9,7 @@
             {{ loading ? 'Registering...' : 'Register' }}
         </button>
     </form>
+    <AuthButtons />
 </template>
 
 <style></style>
@@ -16,6 +17,7 @@
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import AuthButtons from '../components/AuthButtons.vue';
 
 const email = ref('');
 const displayName = ref('');

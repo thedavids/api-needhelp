@@ -1,10 +1,6 @@
 <template>
     <div class="auth-buttons-group">
         <div class="auth-buttons">
-            <router-link to="/login" class="auth-btn">Login</router-link>
-            <router-link to="/signup" class="auth-btn">Sign up</router-link>
-        </div>
-        <div class="auth-buttons">
             <a :href="`${API_URL}/auth/google`" class="auth-btn social-btn google">Login with Google</a>
             <a :href="`${API_URL}/auth/facebook`" class="auth-btn social-btn facebook">Login with Facebook</a>
         </div>

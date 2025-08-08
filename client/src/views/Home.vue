@@ -1,9 +1,5 @@
 <script setup>
-import { useAuth } from '../composables/useAuth'
-import AuthButtons from '../components/AuthButtons.vue'
-import UserPanel from '../components/UserPanel.vue'
-
-const { user } = useAuth()
+import UserPanel from '../components/UserPanel.vue';
 </script>
 
 <style scoped>
@@ -24,5 +20,4 @@ p {
         errands to conversation.</p>
     <p>We're building a platform to make helping easy and local.</p>
     <UserPanel />
-    <AuthButtons v-if="!user" />
 </template>

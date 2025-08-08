@@ -9,11 +9,13 @@
             <router-link to="/forgot-password">Forgot your password?</router-link>
         </p>
     </form>
+    <AuthButtons />
 </template>
 
 <script setup>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import AuthButtons from '../components/AuthButtons.vue';
 
 const API_URL = import.meta.env.VITE_API_URL;
 const email = ref('');
