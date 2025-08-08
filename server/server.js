@@ -28,6 +28,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'dev_jwt_secret';
 const COOKIE_MAX_AGE = 15 * 60 * 1000; // 15 minutes
 const JWT_MAX_AGE = '15m';
 const EMAIL_SECRET = process.env.EMAIL_SECRET_ACTIVATION_SECRET;
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'dev_jwt_refresh_secret';
+const REFRESH_TOKEN_MAX_AGE = '30d';
+const COOKIE_REFRESH_TOKEN_MAX_AGE = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 const resend = new Resend(process.env.EMAIL_RESEND_API_KEY);
 
@@ -73,6 +76,14 @@ function generateToken(user) {
     );
 }
 
+function generateRefreshToken(user) {
+    return jwt.sign(
+        { id: user.id },
+        REFRESH_TOKEN_SECRET,
+        { expiresIn: REFRESH_TOKEN_MAX_AGE }
+    );
+}
+
 // Auth middleware
 function authenticateJWT(req, res, next) {
     const token = req.cookies.token;
@@ -84,6 +95,50 @@ function authenticateJWT(req, res, next) {
         next();
     });
 }
+
+function injectAccessTokens(user, res) {
+    const accessToken = generateToken(user);
+    const newRefreshToken = generateRefreshToken(user);
+
+    res.cookie('token', accessToken, {
+        httpOnly: true,
+        secure: IS_PROD,
+        sameSite: IS_PROD ? 'None' : 'Lax',
+        domain: DOMAIN,
+        maxAge: COOKIE_MAX_AGE
+    });
+
+    res.cookie('refreshToken', newRefreshToken, {
+        httpOnly: true,
+        secure: IS_PROD,
+        sameSite: IS_PROD ? 'None' : 'Lax',
+        domain: DOMAIN,
+        maxAge: COOKIE_REFRESH_TOKEN_MAX_AGE,
+        path: '/refresh-token' // refresh-token only sent to this path
+    });
+}
+
+app.post('/refresh-token', async (req, res) => {
+    const token = req.cookies.refreshToken;
+    if (!token) {
+        return res.status(401).json({ error: 'No refresh token provided' });
+    }
+
+    try {
+        const payload = jwt.verify(token, REFRESH_TOKEN_SECRET);
+        const user = await getUserById(payload.id);
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid refresh token' });
+        }
+
+        injectAccessTokens(user, res);
+
+        res.json({ message: 'Tokens refreshed' });
+    } catch (err) {
+        console.error('Refresh token error:', err);
+        res.status(401).json({ error: 'Invalid or expired refresh token' });
+    }
+});
 
 // ======================================================================
 // Begin Local Auth
@@ -162,14 +217,7 @@ app.post('/login', loginLimiter, (req, res, next) => {
             return res.status(401).json({ error: info?.message || 'Authentication failed' });
         }
 
-        const token = generateToken(user);
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: IS_PROD,
-            sameSite: IS_PROD ? 'None' : 'Lax',
-            domain: DOMAIN,
-            maxAge: COOKIE_MAX_AGE
-        });
+        injectAccessTokens(user, res);
 
         res.json({
             user: {
@@ -326,16 +374,7 @@ app.get('/auth/google',
 app.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/', session: false }),
     (req, res) => {
-        const token = generateToken(req.user);
-
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: IS_PROD,
-            sameSite: IS_PROD ? 'None' : 'Lax',
-            domain: DOMAIN,
-            maxAge: COOKIE_MAX_AGE
-        });
-
+        injectAccessTokens(user, req.user);
         res.redirect(`${FE_URL}`);
     }
 );
@@ -374,16 +413,7 @@ app.get('/auth/facebook',
 app.get('/auth/facebook/callback',
     passport.authenticate('facebook', { failureRedirect: '/', session: false }),
     (req, res) => {
-        const token = generateToken(req.user);
-
-        res.cookie('token', token, {
-            httpOnly: true,
-            secure: IS_PROD,
-            sameSite: IS_PROD ? 'None' : 'Lax',
-            domain: DOMAIN,
-            maxAge: COOKIE_MAX_AGE
-        });
-
+        injectAccessTokens(user, req.user);
         res.redirect(`${FE_URL}`);
     }
 );
