@@ -374,7 +374,7 @@ app.get('/auth/google',
 app.get('/auth/google/callback',
     passport.authenticate('google', { failureRedirect: '/', session: false }),
     (req, res) => {
-        injectAccessTokens(user, req.user);
+        injectAccessTokens(req.user, res);
         res.redirect(`${FE_URL}`);
     }
 );
@@ -413,7 +413,7 @@ app.get('/auth/facebook',
 app.get('/auth/facebook/callback',
     passport.authenticate('facebook', { failureRedirect: '/', session: false }),
     (req, res) => {
-        injectAccessTokens(user, req.user);
+        injectAccessTokens(req.user, res);
         res.redirect(`${FE_URL}`);
     }
 );
